@@ -18,7 +18,7 @@ const randomString = () => {
 };
 
 //Function to send the mail
-const sendMail = async (email, code) => {
+const sendMail = async (email, code, userId) => {
   const transport = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -27,13 +27,17 @@ const sendMail = async (email, code) => {
     },
   });
 
+  const currUrl = "http://localhost:5000/api/auth/";
+
   try {
     const info = await transport.sendMail({
       from: "saichidvigupta@gmail.com",
       to: email,
-      subject: "Hello suruchi ",
-      text: "Hello sai chidvi here ...",
-      html: `<h1>Hey welcome to edTech, Kiriti . This is your random ${code} <h1>`,
+      subject: "Verify Your Email",
+      html: `<p>Verify your email address to complete the signup and login into your account</p>
+             <p>This link <b>expires in 6 hours</b>.</p><p>Press <a href=${
+               currUrl + "user/verify" + "/" + "345" + "/" + code
+             }> here </a> to proceed.</p>`,
     });
     // console.log(info);
     return {
@@ -90,10 +94,14 @@ router.post("/signUp", async (req, res) => {
     //   });
     // }
 
+    //else create a userId and store the verification attributs as false
+    //and get those user id
+    const userId = "sampleId";
+
     //create a secured random string to send the string along with the
     //email for the verification process.
     const code = randomString();
-    const response = await sendMail(email, code);
+    const response = await sendMail(email, code, userId);
     console.log("Triggered me");
     res.status(200).json({
       status: response.status,
@@ -107,6 +115,17 @@ router.post("/signUp", async (req, res) => {
       message: "Internal server issues, while signup.",
     });
   }
+});
+
+router.get("/user/verify/:userId/:code", (req, res) => {
+  console.log("User verified");
+  //verify the user in the data base using the user id and the verification link
+  //check whether he clicked the code in less than 6 hours from the generation of
+  //the link
+  const { userId, code } = req.params;
+
+  //if verified succesffuly
+  res.send("You are verfied sucessfully.");
 });
 
 module.exports = router;
