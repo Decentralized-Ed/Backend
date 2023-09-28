@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const nodemailer = require("nodemailer");
+const mongoose = require("mongoose");
+const User = require("../models/User");
+const VerifyModel = require("../models/EmailVerficationModel");
 
 //Variables
 const googleGamailPass = "zvyavmoikzsawqdg";
 
-//Extra functions used
 //To generate the random string of code.
 const randomString = () => {
   const size = 10;
@@ -18,7 +20,7 @@ const randomString = () => {
 };
 
 //Function to send the mail
-const sendMail = async (email, code, userId) => {
+const sendMail = async (email, code) => {
   const transport = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -36,10 +38,9 @@ const sendMail = async (email, code, userId) => {
       subject: "Verify Your Email",
       html: `<p>Verify your email address to complete the signup and login into your account</p>
              <p>This link <b>expires in 6 hours</b>.</p><p>Press <a href=${
-               currUrl + "user/verify" + "/" + "345" + "/" + code
+               currUrl + "user/verify" + "/" + code
              }> here </a> to proceed.</p>`,
     });
-    // console.log(info);
     return {
       status: 200,
       message: "Email sent successfully.",
@@ -56,16 +57,22 @@ const sendMail = async (email, code, userId) => {
 //Routes for login and signUp
 router.post("/login", async (req, res) => {
   try {
-    // const { email, password } = req.params;
     const { email, password } = req.body;
 
-    //Now check whether the user is in the data base
-    //or not with the provided details.
-    if (true) {
-      res.status(200).json({
-        status: 200,
-        message: "User successfully logged in !",
-      });
+    //check whether the user is present or not
+    const user = await User.find({ email: email });
+    if (user) {
+      if (user.password === password) {
+        res.status(200).json({
+          status: 200,
+          message: "User present in the data base and password is correct!",
+        });
+      } else {
+        res.status(401).json({
+          status: 401,
+          message: "Incorrect password, please recheck the password.",
+        });
+      }
     } else {
       res.status(401).json({
         status: 401,
@@ -85,24 +92,29 @@ router.post("/login", async (req, res) => {
 router.post("/signUp", async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log("I am here sai in the signUp");
+
     //check whether the user details is present in the data base or not
-    // if (true) {
-    //   res.status(400).json({
-    //     status: 400,
-    //     message: "User already exists in the Database, please login.",
-    //   });
-    // }
-
-    //else create a userId and store the verification attributs as false
-    //and get those user id
-    const userId = "sampleId";
-
+    const user = await User.findOne({ emailId: email });
+    if (user) {
+      res.status(200).json({
+        status: 401,
+        message:
+          "User already exists with this email , please login to proceed.",
+      });
+      return;
+    }
     //create a secured random string to send the string along with the
     //email for the verification process.
     const code = randomString();
-    const response = await sendMail(email, code, userId);
-    console.log("Triggered me");
+    const response = await sendMail(email, code);
+    if (response) {
+      const newVerifyObject = await new VerifyModel({
+        messageId: code,
+        userEmail: email,
+        userPassword: password,
+      });
+      await newVerifyObject.save();
+    }
     res.status(200).json({
       status: response.status,
       message: response.message,
@@ -117,15 +129,38 @@ router.post("/signUp", async (req, res) => {
   }
 });
 
-router.get("/user/verify/:userId/:code", (req, res) => {
-  console.log("User verified");
-  //verify the user in the data base using the user id and the verification link
-  //check whether he clicked the code in less than 6 hours from the generation of
-  //the link
-  const { userId, code } = req.params;
-
-  //if verified succesffuly
-  res.send("You are verfied sucessfully.");
+router.post("/user/verify/:code", async (req, res) => {
+  try {
+    const { code } = req.params;
+    const checkMessage = await VerifyModel.findOne({ messageId: code });
+    if (checkMessage) {
+      const user = await User.findOne({ emailId: checkMessage.userEmail });
+      if (!user) {
+        const newUser = await new User({
+          userName: checkMessage.userEmail,
+          emailId: checkMessage.userEmail,
+          password: checkMessage.userPassword,
+          verified: true,
+        });
+        await newUser.save();
+      }
+      res.status(200).json({
+        status: 200,
+        message: "User verified successfully.",
+      });
+    } else {
+      res.status(401).json({
+        status: 401,
+        message: "Invalid Url.",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(401).json({
+      status: 401,
+      message: "Internal server issues, while signup.",
+    });
+  }
 });
 
 module.exports = router;

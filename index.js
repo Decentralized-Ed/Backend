@@ -6,10 +6,22 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 
+const mongoDbAtlasUrl =
+  "mongodb+srv://saichidvi:saichidvigupta@cluster0.gis45.mongodb.net/";
+
 const corsOptions = {
   origin: "http://localhost:5173",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 };
+
+mongoose
+  .connect(mongoDbAtlasUrl)
+  .then(() => {
+    console.log("Connected to the database ");
+  })
+  .catch((err) => {
+    console.error(`Error connecting to the database. n${err}`);
+  });
 
 app.use(cors(corsOptions));
 
