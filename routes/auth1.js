@@ -7,6 +7,7 @@ const generateToken = require("../utils/generateToken");
 const protect = require("../middlewares/authMiddleware");
 const VerifyModel = require("../models/EmailVerficationModel");
 const axios = require("axios");
+const path = require("path");
 
 //Variables
 const googleGamailPass = "zvyavmoikzsawqdg";
@@ -112,10 +113,11 @@ router.post("/signUp", async (req, res) => {
 });
 
 //Route for Verification of link in the email for signUp or register.
-router.post("/user/verify/:code", async (req, res) => {
+router.get("/user/verify/:code", async (req, res) => {
   try {
     const { code } = req.params;
     const checkMessage = await VerifyModel.findOne({ messageId: code });
+    const filePath = path.join(__dirname, "./verificationSuccess.html");
     if (checkMessage) {
       const user = await User.findOne({ emailId: checkMessage.userEmail });
       if (!user) {
@@ -126,11 +128,10 @@ router.post("/user/verify/:code", async (req, res) => {
           verified: true,
         });
         await newUser.save();
+        res.status(200).sendFile(filePath);
+      } else {
+        res.status(200).sendFile(filePath);
       }
-      res.status(200).json({
-        status: 200,
-        message: "User verified successfully.",
-      });
     } else {
       res.status(401).json({
         status: 401,
