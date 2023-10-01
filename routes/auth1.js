@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const nodemailer = require("nodemailer");
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const nodemailer = require("nodemailer");
+const generateToken = require("../utils/generateToken");
+const protect = require("../middlewares/authMiddleware");
 const VerifyModel = require("../models/EmailVerficationModel");
 
 //Variables
@@ -19,7 +21,7 @@ const randomString = () => {
   return code;
 };
 
-//Function to send the mail
+//Function to send the mail.
 const sendMail = async (email, code) => {
   const transport = nodemailer.createTransport({
     service: "gmail",
@@ -54,54 +56,18 @@ const sendMail = async (email, code) => {
   }
 };
 
-//Routes for login and signUp
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    //check whether the user is present or not
-    const user = await User.find({ email: email });
-    if (user) {
-      if (user.password === password) {
-        res.status(200).json({
-          status: 200,
-          message: "User present in the data base and password is correct!",
-        });
-      } else {
-        res.status(401).json({
-          status: 401,
-          message: "Incorrect password, please recheck the password.",
-        });
-      }
-    } else {
-      res.status(401).json({
-        status: 401,
-        message:
-          "User not found in the Database or password not correct. Please signIn first.",
-      });
-    }
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({
-      status: 500,
-      message: "Internal server error issues, while login.",
-    });
-  }
-});
-
+//Route for SignUp.
 router.post("/signUp", async (req, res) => {
   try {
     const { email, password } = req.body;
-
     //check whether the user details is present in the data base or not
     const user = await User.findOne({ emailId: email });
     if (user) {
-      res.status(200).json({
+      return res.status(401).json({
         status: 401,
         message:
-          "User already exists with this email , please login to proceed.",
+          "User already exists with this email , please signIn to proceed.",
       });
-      return;
     }
     //create a secured random string to send the string along with the
     //email for the verification process.
@@ -129,6 +95,7 @@ router.post("/signUp", async (req, res) => {
   }
 });
 
+//Route for Verification of link in the email for signUp or register.
 router.post("/user/verify/:code", async (req, res) => {
   try {
     const { code } = req.params;
@@ -159,6 +126,57 @@ router.post("/user/verify/:code", async (req, res) => {
     res.status(401).json({
       status: 401,
       message: "Internal server issues, while signup.",
+    });
+  }
+});
+
+//Route for login.
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    //search the user in the database
+    const user = await User.findOne({ emailId: email });
+
+    //if user is present , then check the password matches or not.
+    //else send the response with the message.
+    if (user && (await user.matchPasswords(password))) {
+      generateToken(res, user._id);
+      res.status(200).json({
+        userId: user?._id,
+        email: user.emailId,
+        myCookie: res.req.cookies.jwt,
+        jwt: res.req.cookies.jwt,
+      });
+    } else {
+      res.status(401).json({
+        status: 401,
+        message: "Invalid email or password !",
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      status: 500,
+      message: "Internal server error issues, while login.",
+    });
+  }
+});
+
+//Route for logout.
+router.post("/logout", async (req, res) => {
+  try {
+    res.cookie("jwt", "", {
+      httpOnly: true,
+      expires: new Date(0),
+    });
+    res.status(200).json({
+      status: 200,
+      message: "User logged out succesfully!",
+    });
+  } catch (err) {
+    res.status(401).json({
+      status: 401,
+      message: "Server side issues!",
     });
   }
 });
