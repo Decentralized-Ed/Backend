@@ -6,6 +6,7 @@ const nodemailer = require("nodemailer");
 const generateToken = require("../utils/generateToken");
 const protect = require("../middlewares/authMiddleware");
 const VerifyModel = require("../models/EmailVerficationModel");
+const axios = require("axios");
 
 //Variables
 const googleGamailPass = "zvyavmoikzsawqdg";
@@ -60,6 +61,7 @@ const sendMail = async (email, code) => {
 router.post("/signUp", async (req, res) => {
   try {
     const { email, password } = req.body;
+
     //check whether the user details is present in the data base or not
     const user = await User.findOne({ emailId: email });
     if (user) {
@@ -69,6 +71,19 @@ router.post("/signUp", async (req, res) => {
           "User already exists with this email , please signIn to proceed.",
       });
     }
+
+    //check whether the email is valid or not using 3rd party api
+    //This model is only for the prototype use!
+    // const validEmailResponse = await axios.get(
+    //   `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`
+    // );
+    // if (validEmailResponse?.data?.deliverability === "UNDELIVERABLE") {
+    //   return res.status(400).json({
+    //     status: 400,
+    //     message: "Email does not exists !.",
+    //   });
+    // }
+
     //create a secured random string to send the string along with the
     //email for the verification process.
     const code = randomString();
@@ -84,6 +99,7 @@ router.post("/signUp", async (req, res) => {
     res.status(200).json({
       status: response.status,
       message: response.message,
+      response: response,
       info: response?.info,
     });
   } catch (err) {
