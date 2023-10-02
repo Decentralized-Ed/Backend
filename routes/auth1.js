@@ -130,6 +130,7 @@ router.get("/user/verify/:code", async (req, res) => {
         await newUser.save();
         res.status(200).sendFile(filePath);
       } else {
+        //need to change some things in the page will ,do that later.
         res.status(200).sendFile(filePath);
       }
     } else {
@@ -157,7 +158,7 @@ router.post("/login", async (req, res) => {
     //if user is present , then check the password matches or not.
     //else send the response with the message.
     if (user && (await user.matchPasswords(password))) {
-      generateToken(res, user._id);
+      generateToken(req, res, user._id);
       res.status(200).json({
         userId: user?._id,
         email: user.emailId,
