@@ -7,8 +7,9 @@ const uploadDoc = async (req, res) => {
   try {
     const pdfBuffer = fs.readFileSync(req.file.path)
     const qrResp = await generateQr()
-    const qrCodeBase64 = qrResp['qrCodeData']['qrimage']
-    console.log('qrdata ', qrCodeBase64)
+    console.log('qrdata ', qrResp)
+    const qrCodeBase64 = qrResp.qrimage
+    // console.log('qrcode64', qrCodeBase64)
     const modifiedpdfBuffer = await processPDF(pdfBuffer, qrCodeBase64)
     const bucketName = 'verridoc'
     const timestamp = new Date().getTime()

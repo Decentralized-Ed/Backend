@@ -4,6 +4,6 @@ const multer = require('multer')
 const { uploadDoc } = require('../controllers/verridocController')
 const upload = multer({ dest: 'uploads/' })
 
-router.post('/upload-doc', upload.single('pdf'), uploadDoc)
+router.post('/upload-doc', upload.single('document'), uploadDoc)
 
 module.exports = router
