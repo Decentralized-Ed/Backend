@@ -6,6 +6,8 @@ const nodemailer = require("nodemailer");
 const generateToken = require("../utils/generateToken");
 const protect = require("../middlewares/authMiddleware");
 const VerifyModel = require("../models/EmailVerficationModel");
+const axios = require("axios");
+const path = require("path");
 
 //Variables
 const googleGamailPass = "zvyavmoikzsawqdg";
@@ -60,6 +62,7 @@ const sendMail = async (email, code) => {
 router.post("/signUp", async (req, res) => {
   try {
     const { email, password } = req.body;
+
     //check whether the user details is present in the data base or not
     const user = await User.findOne({ emailId: email });
     if (user) {
@@ -69,6 +72,19 @@ router.post("/signUp", async (req, res) => {
           "User already exists with this email , please signIn to proceed.",
       });
     }
+
+    //check whether the email is valid or not using 3rd party api
+    //This model is only for the prototype use!
+    // const validEmailResponse = await axios.get(
+    //   `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`
+    // );
+    // if (validEmailResponse?.data?.deliverability === "UNDELIVERABLE") {
+    //   return res.status(400).json({
+    //     status: 400,
+    //     message: "Email does not exists !.",
+    //   });
+    // }
+
     //create a secured random string to send the string along with the
     //email for the verification process.
     const code = randomString();
@@ -84,6 +100,7 @@ router.post("/signUp", async (req, res) => {
     res.status(200).json({
       status: response.status,
       message: response.message,
+      response: response,
       info: response?.info,
     });
   } catch (err) {
@@ -96,10 +113,11 @@ router.post("/signUp", async (req, res) => {
 });
 
 //Route for Verification of link in the email for signUp or register.
-router.post("/user/verify/:code", async (req, res) => {
+router.get("/user/verify/:code", async (req, res) => {
   try {
     const { code } = req.params;
     const checkMessage = await VerifyModel.findOne({ messageId: code });
+    const filePath = path.join(__dirname, "./verificationSuccess.html");
     if (checkMessage) {
       const user = await User.findOne({ emailId: checkMessage.userEmail });
       if (!user) {
@@ -110,11 +128,10 @@ router.post("/user/verify/:code", async (req, res) => {
           verified: true,
         });
         await newUser.save();
+        res.status(200).sendFile(filePath);
+      } else {
+        res.status(200).sendFile(filePath);
       }
-      res.status(200).json({
-        status: 200,
-        message: "User verified successfully.",
-      });
     } else {
       res.status(401).json({
         status: 401,
