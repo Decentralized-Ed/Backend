@@ -38,33 +38,32 @@ async function generateQr() {
   }
 }
 
-async function submitDocument(docurl) {
+async function submitDocument(uniqueid, docurl) {
   try {
+    const payload2 = calculateSHA256Hash(
+      `${apikey}${uniqueid}${docurl}${apisecret}`
+    )
     const reqbody = {
-      uniqueId: '7f9f2b05-4cb7-4552-a1cb-88e2ba8889f6',
-      fileurl:
-        'https://drive.google.com/file/d/1Y_PMrGnwCQo3aYTZfEi_gu1yzGkasQH_/view',
-      isfileurlpublic: '1',
-      metadata:
-        'Name: John Smith || Title: Test Analyst || Email: John.Smith@test.com',
-      parent_delimiter: '||',
-      child_delimiter: ':',
-      Ispublic: '0 or 1',
-      authorizedusers:
-        'john.smith@abc.com; andrew.white@def.com; peter.wood@xyz.com',
-      Redirecturl: 'yourwebsiteURL.com/verify',
-      IsVerificationGatewayRequired: 'true or false',
-      sendmetadatatoblockchain: 'true or false',
-      metadataforblockchain:
-        'Add any data string or UHV here to show in blockchain record',
-      isparent: '0',
-      parentid: 'dcdbfa3b-e883-4406-96c3-8cb0cd480c89',
+      uniqueId: uniqueid,
+      fileurl: docurl,
     }
+
+    // isfileurlpublic: '1',
+    // metadata: '',
+    // parent_delimiter: '||',
+    // child_delimiter: ':',
+    // Ispublic: ' 1',
+    // authorizedusers: '',
+    // sendmetadatatoblockchain: 'false',
+    // isparent: '1',
+    // parentid: 'dcdbfa3b-e883-4406-96c3-8cb0cd480c89',
+    // IsVerificationGatewayRequired: 'false',
+    // metadataforblockchain: 'Add any data string or UHV here to show in blockchain record',
     const response = await axios.post(`${BASE_URL}/submitdocument`, reqbody, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         apikey: apikey,
-        payload: payload,
+        payload: payload2,
       },
     })
 
@@ -76,7 +75,7 @@ async function submitDocument(docurl) {
   }
 }
 
-
 module.exports = {
   generateQr,
+  submitDocument,
 }
