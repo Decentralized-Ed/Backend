@@ -1,24 +1,41 @@
 const { PDFDocument } = require('pdf-lib')
+const fs = require('fs')
+var base64Img = require('base64-img')
 
 const processPDF = async (pdfBuffer, qrCodeBase64) => {
   try {
-    const qrbuffer = Buffer.from(qrCodeBase64, 'base64')
-    const pdfImgDoc = await PDFDocument.create()
-    pdfImgDoc.addPage([600, 400])
-    const qrCodeImage = await pdfImgDoc.embedPng(qrbuffer)
-    console.log(qrCodeImage)
+    //  base64Img.img(qrCodeBase64, '', '1', function (err, filepath) {})
+    const base64Data = qrCodeBase64.replace(/^data:image\/\w+;base64,/, '')
+    const qrbuffer = Buffer.from(base64Data, 'base64')
+
     const pdfDoc = await PDFDocument.load(pdfBuffer)
-    const page = pdfDoc.getPages()[0]
-    const { width, height } = page.getSize()
-    page.drawImage(qrCodeImage, {
-      x: width - 100,
-      y: height - 100,
+
+    const [page] = pdfDoc.getPages()
+    const width = 400
+    const height = 400
+
+    const pngImage = await pdfDoc.embedPng(qrbuffer)
+
+    page.drawImage(pngImage, {
+      x: width - 10,
+      y: 10,
       width: 80,
       height: 80,
     })
 
     const modifiedPdfBuffer = await pdfDoc.save()
-    console.log(modifiedPdfBuffer, 'modified')
+
+    // const filePath = 'output_file4.pdf'
+
+    // fs.writeFile(filePath, modifiedPdfBuffer, (err) => {
+    //   if (err) {
+    //     console.error('Error saving the file:', err)
+    //   } else {
+    //     console.log(`File saved to ${filePath}`)
+    //   }
+    // })
+
+    // console.log(modifiedPdfBuffer, 'modified')
 
     return modifiedPdfBuffer
   } catch (error) {

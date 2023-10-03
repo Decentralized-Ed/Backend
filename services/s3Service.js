@@ -9,7 +9,7 @@ AWS.config.update({
 const s3 = new AWS.S3()
 
 function uploadPDFToS3(bucketName, s3ObjectName, pdfBuffer) {
-  console.log(s3)
+//   console.log(s3)
   return new Promise((resolve, reject) => {
     const params = {
       Bucket: bucketName,
